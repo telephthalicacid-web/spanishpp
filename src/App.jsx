@@ -25,13 +25,13 @@ export default function App() {
 
   // デザイン共通定数
   const colors = {
-    bg: '#FFFBF5',           // 非常に薄いベージュ（生成り）
-    primary: '#E67E22',      // 暖かいオレンジ（テラコッタ）
+    bg: '#FFFBF5',           // 非常に薄いベージュ
+    primary: '#E67E22',      // 暖かいオレンジ
     secondary: '#A04000',    // 深い茶色
     text: '#4A2711',         // 濃いブラウン
-    accent: '#FDEBD0',       // 薄いピーチ（選択時）
+    accent: '#FDEBD0',       // 選択時
     white: '#FFFFFF',
-    border: '#E5D3B3'        // 薄い茶系の境界線
+    border: '#E5D3B3'        // 境界線
   };
 
   const inputStyle = {
@@ -85,10 +85,9 @@ export default function App() {
             flex: 1, 
             border: 'none', 
             backgroundColor: 'transparent', 
-            fontSize: '13px', 
+            fontSize: '11px', 
             color: activeTab === 'practice' ? colors.primary : '#999',
-            fontWeight: activeTab === 'practice' ? 'bold' : 'normal',
-            transition: '0.3s'
+            fontWeight: activeTab === 'practice' ? 'bold' : 'normal'
           }}
         >
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>Practice</div>
@@ -100,11 +99,10 @@ export default function App() {
             flex: 1, 
             border: 'none', 
             backgroundColor: 'transparent', 
-            fontSize: '13px', 
+            fontSize: '11px', 
             color: activeTab === 'register' ? colors.primary : '#999',
             fontWeight: activeTab === 'register' ? 'bold' : 'normal',
-            borderLeft: `1px solid ${colors.border}`,
-            transition: '0.3s'
+            borderLeft: `1px solid ${colors.border}`
           }}
         >
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>Register</div>
@@ -152,46 +150,25 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
     const current = practiceQueue[currentIndex];
     return (
       <div style={{ textAlign: 'center', paddingTop: '40px' }}>
-        <p style={{ color: colors.secondary, fontSize: '14px', letterSpacing: '0.05em' }}>{current.grammarName} ({currentIndex + 1}/{practiceQueue.length})</p>
-        <div style={{ 
-          margin: '40px 0', 
-          fontSize: '24px', 
-          fontWeight: 'bold', 
-          minHeight: '100px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          lineHeight: '1.4'
-        }}>{current.ja}</div>
-        
+        <p style={{ color: colors.secondary, fontSize: '14px' }}>{current.grammarName} ({currentIndex + 1}/{practiceQueue.length})</p>
+        <div style={{ margin: '40px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4' }}>{current.ja}</div>
         <div style={{ minHeight: '100px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {showAnswer && <div style={{ fontSize: '24px', color: colors.primary, fontWeight: 'bold' }}>{current.es}</div>}
         </div>
-
         {!showAnswer ? (
-          <button 
-            onClick={() => setShowAnswer(true)} 
-            style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 4px 15px rgba(230, 126, 34, 0.3)', fontWeight: 'bold' }}
-          >
-            解答を表示
-          </button>
+          <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>解答を表示</button>
         ) : (
-          <button 
-            onClick={() => {
-              if (currentIndex < practiceQueue.length - 1) {
-                setCurrentIndex(currentIndex + 1);
-                setShowAnswer(false);
-              } else {
-                alert('¡Buen trabajo! 全て終了しました。');
-                setIsPracticing(false);
-              }
-            }} 
-            style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}
-          >
-            次へ進む
-          </button>
+          <button onClick={() => {
+            if (currentIndex < practiceQueue.length - 1) {
+              setCurrentIndex(currentIndex + 1);
+              setShowAnswer(false);
+            } else {
+              alert('全例文が終了しました！');
+              setIsPracticing(false);
+            }
+          }} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>次へ進む</button>
         )}
-        <button onClick={() => setIsPracticing(false)} style={{ marginTop: '40px', background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: '15px' }}>練習を終了する</button>
+        <button onClick={() => setIsPracticing(false)} style={{ marginTop: '40px', background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: '15px' }}>終了して戻る</button>
       </div>
     );
   }
@@ -200,6 +177,7 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>Library</h2>
       
+      {/* リスト部分 */}
       <div style={{ paddingBottom: '180px' }}>
         {grammarSets.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>教材を登録しましょう</div>
@@ -207,13 +185,14 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
           grammarSets.map(set => (
             <div key={set.id} style={{ 
               display: 'flex', 
-              width: '100%', 
+              width: '100%', // 画面横いっぱいに
               marginBottom: '16px', 
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
               borderRadius: '16px',
               overflow: 'hidden',
               backgroundColor: colors.white,
-              border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`
+              border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`,
+              boxSizing: 'border-box'
             }}>
               <div 
                 onClick={() => toggleSelection(set.id)}
@@ -221,7 +200,8 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
                   flex: 1, 
                   padding: '20px', 
                   backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, 
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  textAlign: 'left'
                 }}
               >
                 <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '4px' }}>{set.grammarName}</div>
@@ -230,11 +210,12 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
               <button 
                 onClick={() => deleteSet(set.id)} 
                 style={{ 
-                  width: '60px',
+                  width: '70px', // 削除ボタンの幅を少し広げて押しやすく
                   color: '#E74C3C', 
                   border: 'none',
-                  backgroundColor: colors.white,
-                  fontSize: '11px',
+                  backgroundColor: '#FFF1F0', // 削除エリアのみ薄い赤
+                  fontSize: '12px',
+                  fontWeight: 'bold',
                   borderLeft: `1px solid ${colors.border}`
                 }}
               >
@@ -245,6 +226,7 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
         )}
       </div>
 
+      {/* 固定操作エリア */}
       <div style={{
         position: 'fixed',
         bottom: '84px',
@@ -256,12 +238,12 @@ function PracticeMode({ grammarSets, deleteSet, colors }) {
         zIndex: 500
       }}>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary }}>
+          <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary, cursor: 'pointer' }}>
             <input 
               type="checkbox" 
               checked={isRandom} 
               onChange={e => setIsRandom(e.target.checked)} 
-              style={{ width: '20px', height: '20px', marginRight: '10px', accentColor: colors.primary }} 
+              style={{ width: '22px', height: '22px', marginRight: '10px', accentColor: colors.primary }} 
             /> 
             シャッフル再生
           </label>
@@ -312,7 +294,7 @@ function RegisterMode({ grammarSets, saveToLocalStorage, inputStyle, colors }) {
     saveToLocalStorage([...grammarSets, newSet]);
     setGrammarName('');
     setSentences(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
-    alert('新しいセットを保存しました');
+    alert('保存しました');
   };
 
   return (
@@ -335,22 +317,22 @@ function RegisterMode({ grammarSets, saveToLocalStorage, inputStyle, colors }) {
           onChange={e => setBulkInput(e.target.value)} 
           style={{ ...inputStyle, height: '140px', marginBottom: '12px', border: 'none' }}
         />
-        <button onClick={handleApplyBulk} style={{ width: '100%', padding: '12px', backgroundColor: colors.white, color: colors.primary, border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>リストに反映</button>
+        <button onClick={handleApplyBulk} style={{ width: '100%', padding: '12px', backgroundColor: colors.white, color: colors.primary, border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>反映</button>
       </div>
 
-      <h3 style={{ fontSize: '16px', marginBottom: '16px', paddingLeft: '4px' }}>Preview</h3>
+      <h3 style={{ fontSize: '16px', marginBottom: '16px' }}>Preview</h3>
       {sentences.map((s, i) => (
         <div key={i} style={{ marginBottom: '20px', padding: '16px', backgroundColor: colors.white, borderRadius: '16px', boxShadow: '0 2px 5px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '11px', color: '#BBB', marginBottom: '8px', fontWeight: 'bold' }}>{String(i + 1).padStart(2, '0')}</div>
+          <div style={{ fontSize: '11px', color: '#BBB', marginBottom: '8px' }}>{i + 1}</div>
           <input type="text" placeholder="日本語" value={s.ja} onChange={e => {
             const n = [...sentences]; n[i].ja = e.target.value; setSentences(n);
-          }} style={{ ...inputStyle, marginBottom: '8px', padding: '8px', border: 'none', backgroundColor: '#F9F9F9' }} />
+          }} style={{ ...inputStyle, marginBottom: '8px', border: 'none', backgroundColor: '#F9F9F9' }} />
           <input type="text" placeholder="Español" value={s.es} onChange={e => {
             const n = [...sentences]; n[i].es = e.target.value; setSentences(n);
-          }} style={{ ...inputStyle, padding: '8px', border: 'none', backgroundColor: '#F9F9F9' }} />
+          }} style={{ ...inputStyle, border: 'none', backgroundColor: '#F9F9F9' }} />
         </div>
       ))}
-      <button onClick={handleSave} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(230, 126, 34, 0.3)' }}>このセットを保存する</button>
+      <button onClick={handleSave} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>セットを保存する</button>
     </div>
   );
 }
