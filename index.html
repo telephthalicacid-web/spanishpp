@@ -1,22 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-    <!-- iOS用のアイコン設定 -->
-<link rel="apple-touch-icon" href="%PUBLIC_URL%/icon.png">
-<!-- Androidや一般的なブラウザ用のアイコン設定 -->
-<link rel="icon" type="image/png" href="%PUBLIC_URL%/icon.png">
-<!-- モバイルブラウザのツールバー色（アプリのテーマカラーに合わせる） -->
-<meta name="theme-color" content="#FFFBF5">
-<!-- アプリとして起動した時のタイトル -->
-<meta name="apple-mobile-web-app-title" content="西トレ">
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Viteでは / から始めるだけで public フォルダを参照します -->
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>西トレ - スペイン語パタプラ</title>
+
+    <!-- iOS用のアイコン設定（パスを修正） -->
+    <link rel="apple-touch-icon" href="/icon.png">
+    
+    <!-- PWA設定（iPhoneでアプリのように振る舞う設定） -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="PataPla">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="西トレ">
+    
+    <!-- テーマカラー -->
+    <meta name="theme-color" content="#FFFBF5">
   </head>
   <body>
     <div id="root"></div>
