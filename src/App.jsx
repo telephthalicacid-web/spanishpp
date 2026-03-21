@@ -4,7 +4,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('practice');
   const [grammarSets, setGrammarSets] = useState([]);
 
-  // --- データの永続化 (localStorage) ---
   useEffect(() => {
     const savedData = localStorage.getItem('spanishPatternData');
     if (savedData) {
@@ -17,18 +16,23 @@ export default function App() {
     localStorage.setItem('spanishPatternData', JSON.stringify(data));
   };
 
+  const deleteSet = (id) => {
+    if (window.confirm('このセットを削除しますか？')) {
+      const newData = grammarSets.filter(set => set.id !== id);
+      saveToLocalStorage(newData);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif' }}>
-      {/* メインコンテンツエリア */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '80px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '100px' }}>
         {activeTab === 'practice' ? (
-          <PracticeMode grammarSets={grammarSets} />
+          <PracticeMode grammarSets={grammarSets} deleteSet={deleteSet} />
         ) : (
           <RegisterMode grammarSets={grammarSets} saveToLocalStorage={saveToLocalStorage} />
         )}
       </div>
 
-      {/* 下部タブナビゲーション */}
       <div style={{
         display: 'flex',
         position: 'fixed',
@@ -37,17 +41,18 @@ export default function App() {
         right: 0,
         borderTop: '1px solid #ccc',
         backgroundColor: '#fff',
-        height: '60px'
+        height: '70px',
+        zIndex: 100
       }}>
         <button
           onClick={() => setActiveTab('practice')}
-          style={{ flex: 1, border: 'none', backgroundColor: activeTab === 'practice' ? '#e0e0e0' : '#fff', fontSize: '16px' }}
+          style={{ flex: 1, border: 'none', backgroundColor: activeTab === 'practice' ? '#eee' : '#fff', fontSize: '14px' }}
         >
           Pattern Practice
         </button>
         <button
           onClick={() => setActiveTab('register')}
-          style={{ flex: 1, border: 'none', backgroundColor: activeTab === 'register' ? '#e0e0e0' : '#fff', fontSize: '16px', borderLeft: '1px solid #ccc' }}
+          style={{ flex: 1, border: 'none', backgroundColor: activeTab === 'register' ? '#eee' : '#fff', fontSize: '14px', borderLeft: '1px solid #ccc' }}
         >
           例文登録
         </button>
@@ -56,8 +61,8 @@ export default function App() {
   );
 }
 
-// --- パターンプラクティス モード ---
-function PracticeMode({ grammarSets }) {
+// --- 練習モード ---
+function PracticeMode({ grammarSets, deleteSet }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
@@ -75,22 +80,14 @@ function PracticeMode({ grammarSets }) {
     let queue = [];
     grammarSets.forEach(set => {
       if (selectedIds.includes(set.id)) {
-        set.sentences.forEach(sentence => {
-          if (sentence.ja && sentence.es) {
-            queue.push({ ...sentence, grammarName: set.grammarName });
-          }
+        set.sentences.forEach(s => {
+          if (s.ja && s.es) queue.push({ ...s, grammarName: set.grammarName });
         });
       }
     });
 
-    if (queue.length === 0) {
-      alert('例文が登録されているセットを選択してください。');
-      return;
-    }
-
-    if (isRandom) {
-      queue = queue.sort(() => Math.random() - 0.5);
-    }
+    if (queue.length === 0) return alert('セットを選択してください');
+    if (isRandom) queue.sort(() => Math.random() - 0.5);
 
     setPracticeQueue(queue);
     setCurrentIndex(0);
@@ -98,210 +95,120 @@ function PracticeMode({ grammarSets }) {
     setIsPracticing(true);
   };
 
-  const nextSentence = () => {
-    if (currentIndex < practiceQueue.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setShowAnswer(false);
-    } else {
-      alert('すべての例文が終了しました。');
-      setIsPracticing(false);
-    }
-  };
-
   if (isPracticing) {
     const current = practiceQueue[currentIndex];
     return (
-      <div style={{ textAlign: 'center', marginTop: '40px' }}>
-        <p style={{ fontSize: '14px', color: '#666' }}>{current.grammarName} ({currentIndex + 1} / {practiceQueue.length})</p>
-        <div style={{ margin: '40px 0', fontSize: '20px', fontWeight: 'bold' }}>
-          {current.ja}
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ color: '#666' }}>{current.grammarName} ({currentIndex + 1}/{practiceQueue.length})</p>
+        <div style={{ margin: '40px 0', fontSize: '22px', fontWeight: 'bold', minHeight: '60px' }}>{current.ja}</div>
+        <div style={{ minHeight: '60px', marginBottom: '40px' }}>
+          {showAnswer && <div style={{ fontSize: '22px', color: '#d32f2f' }}>{current.es}</div>}
         </div>
-        
-        {showAnswer ? (
-          <div style={{ margin: '40px 0', fontSize: '20px', color: '#d32f2f' }}>
-            {current.es}
-          </div>
+        {!showAnswer ? (
+          <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff' }}>解答を表示</button>
         ) : (
-          <button 
-            onClick={() => setShowAnswer(true)}
-            style={{ padding: '12px 24px', fontSize: '16px', margin: '40px 0', cursor: 'pointer' }}
-          >
-            解答を表示
-          </button>
+          <button onClick={() => {
+            if (currentIndex < practiceQueue.length - 1) {
+              setCurrentIndex(currentIndex + 1);
+              setShowAnswer(false);
+            } else {
+              alert('終了！');
+              setIsPracticing(false);
+            }
+          }} style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff' }}>次へ</button>
         )}
-
-        {showAnswer && (
-          <button 
-            onClick={nextSentence}
-            style={{ padding: '12px 24px', fontSize: '16px', cursor: 'pointer', display: 'block', margin: '0 auto' }}
-          >
-            次の例文へ
-          </button>
-        )}
-
-        <button 
-          onClick={() => setIsPracticing(false)}
-          style={{ marginTop: '60px', padding: '8px 16px', backgroundColor: '#f5f5f5', border: '1px solid #ccc' }}
-        >
-          一覧に戻る
-        </button>
+        <button onClick={() => setIsPracticing(false)} style={{ marginTop: '40px', background: 'none', border: 'none', color: '#666', textDecoration: 'underline' }}>中断して戻る</button>
       </div>
     );
   }
 
   return (
     <div>
-      <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>学習セット選択</h2>
-      {grammarSets.length === 0 ? (
-        <p>登録されたデータがありません。「例文登録」タブから追加してください。</p>
-      ) : (
-        <>
-          <div style={{ marginBottom: '20px' }}>
-            {grammarSets.map(set => (
-              <div 
-                key={set.id} 
-                onClick={() => toggleSelection(set.id)}
-                style={{
-                  border: '1px solid #000',
-                  padding: '16px',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  backgroundColor: selectedIds.includes(set.id) ? '#e3f2fd' : '#fff',
-                  cursor: 'pointer'
-                }}
-              >
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{set.grammarName}</span>
-                <span style={{ fontSize: '16px' }}>{set.cefrLevel}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', fontSize: '16px' }}>
-              <input 
-                type="checkbox" 
-                checked={isRandom} 
-                onChange={(e) => setIsRandom(e.target.checked)} 
-                style={{ marginRight: '8px', transform: 'scale(1.5)' }}
-              />
-              ランダム出題にする
-            </label>
-          </div>
-
-          <button 
-            onClick={startPractice}
-            style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '4px' }}
+      <h2 style={{ fontSize: '18px' }}>学習セット一覧</h2>
+      {grammarSets.map(set => (
+        <div key={set.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <div 
+            onClick={() => toggleSelection(set.id)}
+            style={{ flex: 1, border: '1px solid #000', padding: '12px', backgroundColor: selectedIds.includes(set.id) ? '#e3f2fd' : '#fff' }}
           >
-            練習を開始する
-          </button>
-        </>
-      )}
+            <strong>{set.grammarName}</strong> [{set.cefrLevel}]
+          </div>
+          <button onClick={() => deleteSet(set.id)} style={{ marginLeft: '8px', padding: '12px', color: 'red', border: '1px solid red', backgroundColor: '#fff' }}>消去</button>
+        </div>
+      ))}
+      <div style={{ margin: '20px 0' }}>
+        <label><input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} /> ランダムに出題</label>
+      </div>
+      <button onClick={startPractice} style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff' }}>練習開始</button>
     </div>
   );
 }
 
-// --- 例文登録 モード ---
+// --- 登録モード ---
 function RegisterMode({ grammarSets, saveToLocalStorage }) {
   const [grammarName, setGrammarName] = useState('');
   const [cefrLevel, setCefrLevel] = useState('A1');
-  
-  // 10個の空の例文オブジェクトで初期化
-  const [sentences, setSentences] = useState(
-    Array.from({ length: 10 }, () => ({ ja: '', es: '' }))
-  );
+  const [bulkInput, setBulkInput] = useState('');
+  const [sentences, setSentences] = useState(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
 
-  const handleSentenceChange = (index, field, value) => {
-    const newSentences = [...sentences];
-    newSentences[index][field] = value;
+  // 一括ペーストを解析する関数
+  const handleApplyBulk = () => {
+    const lines = bulkInput.split('\n').map(l => l.trim()).filter(l => l !== '');
+    const newSentences = Array.from({ length: 10 }, () => ({ ja: '', es: '' }));
+    
+    // 2行ずつペアにして抽出 (奇数行: 日本語, 偶数行: スペイン語)
+    for (let i = 0; i < 10; i++) {
+      if (lines[i * 2]) newSentences[i].ja = lines[i * 2];
+      if (lines[i * 2 + 1]) newSentences[i].es = lines[i * 2 + 1];
+    }
     setSentences(newSentences);
+    setBulkInput('');
+    alert('反映しました。下の各項目で微調整できます。');
   };
 
   const handleSave = () => {
-    if (!grammarName.trim()) {
-      alert('文法名を入力してください。');
-      return;
-    }
+    if (!grammarName) return alert('文法名を入力してください');
+    const validSentences = sentences.filter(s => s.ja && s.es);
+    if (validSentences.length === 0) return alert('例文を入力してください');
 
-    // 少なくとも1つは入力されているか確認
-    const hasValidSentence = sentences.some(s => s.ja.trim() !== '' && s.es.trim() !== '');
-    if (!hasValidSentence) {
-      alert('少なくとも1つの例文（日本語とスペイン語の両方）を入力してください。');
-      return;
-    }
-
-    const newSet = {
-      id: Date.now().toString(),
-      grammarName,
-      cefrLevel,
-      sentences: sentences.filter(s => s.ja.trim() !== '' || s.es.trim() !== '') // 空の項目は除外して保存
-    };
-
+    const newSet = { id: Date.now().toString(), grammarName, cefrLevel, sentences: validSentences };
     saveToLocalStorage([...grammarSets, newSet]);
-    
-    // フォームをリセット
     setGrammarName('');
-    setCefrLevel('A1');
     setSentences(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
-    alert('保存しました。');
+    alert('登録完了しました');
   };
 
   return (
     <div>
-      <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>新規セット登録</h2>
-      
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '4px' }}>文法名</label>
-        <input 
-          type="text" 
-          value={grammarName} 
-          onChange={(e) => setGrammarName(e.target.value)}
-          style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          placeholder="例: 点過去"
+      <h2 style={{ fontSize: '18px' }}>新規セット登録</h2>
+      <input type="text" placeholder="文法名 (例: 点過去)" value={grammarName} onChange={e => setGrammarName(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '12px', boxSizing: 'border-box' }} />
+      <select value={cefrLevel} onChange={e => setCefrLevel(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '20px' }}>
+        {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(lv => <option key={lv} value={lv}>{lv}</option>)}
+      </select>
+
+      <div style={{ border: '1px solid #ccc', padding: '12px', marginBottom: '24px', backgroundColor: '#f9f9f9' }}>
+        <h3 style={{ fontSize: '14px', marginTop: 0 }}>一括ペースト反映</h3>
+        <textarea 
+          placeholder="日本語&#10;スペイン語&#10;の順に貼り付けてください" 
+          value={bulkInput} 
+          onChange={e => setBulkInput(e.target.value)} 
+          style={{ width: '100%', height: '80px', marginBottom: '8px' }}
         />
+        <button onClick={handleApplyBulk} style={{ width: '100%', padding: '8px', backgroundColor: '#666', color: '#fff', border: 'none' }}>上記内容を下の一覧に反映</button>
       </div>
 
-      <div style={{ marginBottom: '24px' }}>
-        <label style={{ display: 'block', marginBottom: '4px' }}>CEFRレベル</label>
-        <select 
-          value={cefrLevel} 
-          onChange={(e) => setCefrLevel(e.target.value)}
-          style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-        >
-          {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(level => (
-            <option key={level} value={level}>{level}</option>
-          ))}
-        </select>
-      </div>
-
-      <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>例文 (最大10個)</h3>
-      {sentences.map((sentence, index) => (
-        <div key={index} style={{ marginBottom: '16px', padding: '12px', border: '1px solid #eee', backgroundColor: '#fafafa' }}>
-          <div style={{ marginBottom: '4px', fontSize: '14px', fontWeight: 'bold' }}>#{index + 1}</div>
-          <input 
-            type="text" 
-            placeholder="日本語" 
-            value={sentence.ja}
-            onChange={(e) => handleSentenceChange(index, 'ja', e.target.value)}
-            style={{ width: '100%', padding: '8px', marginBottom: '8px', boxSizing: 'border-box' }}
-          />
-          <input 
-            type="text" 
-            placeholder="Español" 
-            value={sentence.es}
-            onChange={(e) => handleSentenceChange(index, 'es', e.target.value)}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
+      <h3 style={{ fontSize: '14px' }}>個別修正</h3>
+      {sentences.map((s, i) => (
+        <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #eee' }}>
+          <input type="text" placeholder="日本語" value={s.ja} onChange={e => {
+            const n = [...sentences]; n[i].ja = e.target.value; setSentences(n);
+          }} style={{ width: '100%', marginBottom: '4px', padding: '8px', boxSizing: 'border-box' }} />
+          <input type="text" placeholder="Español" value={s.es} onChange={e => {
+            const n = [...sentences]; n[i].es = e.target.value; setSentences(n);
+          }} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
       ))}
-
-      <button 
-        onClick={handleSave}
-        style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '4px', marginBottom: '20px' }}
-      >
-        登録する
-      </button>
+      <button onClick={handleSave} style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: '#000', color: '#fff', marginBottom: '40px' }}>このセットを保存</button>
     </div>
   );
 }
