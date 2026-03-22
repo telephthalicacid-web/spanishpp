@@ -99,7 +99,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
-  const [questionLimit, setQuestionLimit] = useState(10); // 初期値は10
+  const [questionLimit, setQuestionLimit] = useState(10);
 
   const THINKING_TIME = 8000;
 
@@ -127,12 +127,10 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     let queue = [...allSentences];
     const isMultiple = selectedIds.length > 1;
 
-    // 複数選択時は強制シャッフル
     if (isMultiple || isRandom) {
       queue.sort(() => Math.random() - 0.5);
     }
 
-    // 複数選択時は必ず選択した数(10 or 20)でカット。単体時は全問。
     if (isMultiple) {
       queue = queue.slice(0, questionLimit);
     }
@@ -150,15 +148,25 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     const displayTitle = isMultipleSelected ? "実力試しテスト" : current.grammarName;
 
     return (
-      <div style={{ textAlign: 'center', paddingTop: '20px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px', marginBottom: '24px' }}>
+      <div style={{ textAlign: 'center', paddingTop: '10px' }}>
+        {/* プログレス・インジケーター（10列固定のグリッド） */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(10, 1fr)', 
+          gap: '6px', 
+          marginBottom: '30px',
+          width: '100%',
+          maxWidth: '400px',
+          margin: '0 auto 30px'
+        }}>
           {practiceQueue.map((_, idx) => (
             <div key={idx} style={{
-              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '6px', fontSize: '12px', fontWeight: 'bold',
+              aspectRatio: '1 / 1',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', fontSize: '10px', fontWeight: 'bold',
               backgroundColor: idx <= currentIndex ? colors.primary : 'transparent',
               color: idx <= currentIndex ? '#fff' : colors.border,
-              border: `2px solid ${idx <= currentIndex ? colors.primary : colors.border}`,
+              border: `1.5px solid ${idx <= currentIndex ? colors.primary : colors.border}`,
               transition: 'all 0.3s ease'
             }}>
               {idx + 1}
@@ -172,7 +180,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
           </div>
         )}
 
-        <h3 style={{ color: colors.secondary, fontSize: '20px', fontWeight: '800', margin: '10px 0 30px' }}>
+        <h3 style={{ color: colors.secondary, fontSize: '24px', fontWeight: '800', margin: '10px 0 30px' }}>
           {displayTitle}
         </h3>
 
@@ -203,6 +211,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     );
   }
 
+  // 以下、LibraryとRegisterModeは変更なしのため省略（前のコードと同じです）
   return (
     <div style={{ width: '100%' }}>
       <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>Library</h2>
@@ -214,7 +223,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
                 <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
                 <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
               </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>🔥 練習回数: {set.practiceCount || 0}回</div>
+              <div style={{ fontSize: '13px', color: colors.secondary }}練習回数: {set.practiceCount || 0}回</div>
             </div>
             <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
           </div>
@@ -228,7 +237,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
               <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />シャッフル
             </label>
           ) : (
-            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>✨ 複数選択: シャッフルON</div>
+            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>複数選択: シャッフルON</div>
           )}
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: colors.secondary }}>
             <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />オート解答
