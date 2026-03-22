@@ -89,8 +89,6 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
-  
-  // 出題数制限用のステート (0 = 無制限)
   const [questionLimit, setQuestionLimit] = useState(10);
 
   const THINKING_TIME = 8000;
@@ -119,12 +117,10 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     let queue = [...allSentences];
     const isMultiple = selectedIds.length > 1;
 
-    // 複数選択時は強制シャッフル、単体時は設定に従う
     if (isMultiple || isRandom) {
       queue.sort(() => Math.random() - 0.5);
     }
 
-    // 複数選択時かつ制限がある場合は切り出し
     if (isMultiple && questionLimit > 0) {
       queue = queue.slice(0, questionLimit);
     }
@@ -134,6 +130,8 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     setShowAnswer(false);
     setIsPracticing(true);
   };
+
+  const isMultipleSelected = selectedIds.length > 1;
 
   if (isPracticing) {
     const current = practiceQueue[currentIndex];
@@ -170,8 +168,6 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     );
   }
 
-  const isMultipleSelected = selectedIds.length > 1;
-
   return (
     <div style={{ width: '100%' }}>
       <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>Library</h2>
@@ -190,10 +186,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
         ))}
       </div>
 
-      {/* 操作パネル */}
       <div style={{ position: 'fixed', bottom: '84px', left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)', padding: '16px 20px', borderTop: `1px solid ${colors.border}`, zIndex: 500, boxSizing: 'border-box' }}>
-        
-        {/* モード設定 */}
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-around' }}>
           {!isMultipleSelected ? (
             <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: colors.secondary }}>
@@ -207,7 +200,6 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
           </label>
         </div>
 
-        {/* 複数選択時のみ出題数ボタンを表示 */}
         {isMultipleSelected && (
           <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: colors.secondary }}>出題数:</span>
@@ -230,4 +222,57 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   );
 }
 
-// RegisterMode は変更なしのため省略（前のコードと同じものを使ってください）
+function RegisterMode({ grammarSets, saveToLocalStorage, showAlert, colors }) {
+  const [grammarName, setGrammarName] = useState('');
+  const [cefrLevel, setCefrLevel] = useState('A1');
+  const [bulkInput, setBulkInput] = useState('');
+  const [sentences, setSentences] = useState(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
+
+  const handleApplyBulk = () => {
+    const lines = bulkInput.split('\n').map(l => l.trim()).filter(l => l !== '');
+    const newSentences = Array.from({ length: 10 }, () => ({ ja: '', es: '' }));
+    for (let i = 0; i < 10; i++) {
+      if (lines[i * 2]) newSentences[i].ja = lines[i * 2];
+      if (lines[i * 2 + 1]) newSentences[i].es = lines[i * 2 + 1];
+    }
+    setSentences(newSentences);
+    setBulkInput('');
+  };
+
+  const handleSave = () => {
+    if (!grammarName) return showAlert('文法名を入力してください');
+    const validSentences = sentences.filter(s => s.ja && s.es);
+    if (validSentences.length === 0) return showAlert('例文を入力してください');
+    const newSet = { id: Date.now().toString(), grammarName, cefrLevel, sentences: validSentences, practiceCount: 0 };
+    saveToLocalStorage([...grammarSets, newSet]);
+    setGrammarName('');
+    setSentences(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
+    showAlert('セットを保存しました！');
+  };
+
+  const inputBaseStyle = { width: '100%', padding: '12px', fontSize: '16px', boxSizing: 'border-box', border: `1px solid ${colors.border}`, borderRadius: '12px', backgroundColor: '#fff' };
+
+  return (
+    <div style={{ width: '100%', paddingBottom: '60px' }}>
+      <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>New Set</h2>
+      <input type="text" placeholder="文法項目" value={grammarName} onChange={e => setGrammarName(e.target.value)} style={{ ...inputBaseStyle, marginBottom: '20px' }} />
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+        {['A1', 'A2', 'B1', 'B2'].map(lv => (
+          <button key={lv} onClick={() => setCefrLevel(lv)} style={{ flex: 1, padding: '12px 0', borderRadius: '12px', border: `2px solid ${cefrLevel === lv ? colors.primary : colors.border}`, backgroundColor: cefrLevel === lv ? colors.accent : '#fff', color: cefrLevel === lv ? colors.primary : '#999', fontWeight: 'bold' }}>{lv}</button>
+        ))}
+      </div>
+      <div style={{ backgroundColor: colors.accent, padding: '20px', borderRadius: '20px', marginBottom: '32px' }}>
+        <h3 style={{ fontSize: '15px', marginTop: 0, marginBottom: '12px' }}>Bulk Import</h3>
+        <textarea placeholder="Geminiの結果を貼り付け" value={bulkInput} onChange={e => setBulkInput(e.target.value)} style={{ ...inputBaseStyle, height: '120px', marginBottom: '12px', border: 'none' }} />
+        <button onClick={handleApplyBulk} style={{ width: '100%', padding: '12px', backgroundColor: colors.white, color: colors.primary, border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>反映</button>
+      </div>
+      {sentences.map((s, i) => (
+        <div key={i} style={{ marginBottom: '16px', padding: '16px', backgroundColor: colors.white, borderRadius: '16px' }}>
+          <input type="text" placeholder="日本語" value={s.ja} onChange={e => { const n = [...sentences]; n[i].ja = e.target.value; setSentences(n); }} style={{ ...inputBaseStyle, marginBottom: '8px', border: 'none', backgroundColor: '#F9F9F9' }} />
+          <input type="text" placeholder="Español" value={s.es} onChange={e => { const n = [...sentences]; n[i].es = e.target.value; setSentences(n); }} style={{ ...inputBaseStyle, border: 'none', backgroundColor: '#F9F9F9' }} />
+        </div>
+      ))}
+      <button onClick={handleSave} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', marginBottom: '40px' }}>セットを保存する</button>
+    </div>
+  );
+}
