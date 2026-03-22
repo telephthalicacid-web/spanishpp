@@ -193,7 +193,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
                 <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
                 <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
               </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>🔥 練習回数: {set.practiceCount || 0}回</div>
+              <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
             </div>
             <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
           </div>
@@ -207,7 +207,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
               <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />シャッフル
             </label>
           ) : (
-            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>✨ 複数選択: シャッフルON</div>
+            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>複数選択: シャッフルON</div>
           )}
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: colors.secondary }}>
             <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />オート解答
