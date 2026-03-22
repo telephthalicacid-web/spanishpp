@@ -3,12 +3,18 @@ import React, { useState, useEffect } from 'react';
 export default function App() {
   const [activeTab, setActiveTab] = useState('practice');
   const [grammarSets, setGrammarSets] = useState([]);
+  
+  // モーダル管理用のステート
+  const [modal, setModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null, // Confirm用：OKを押した時の処理
+    isConfirm: false // trueなら「キャンセル」ボタンを表示
+  });
 
   useEffect(() => {
     const savedData = localStorage.getItem('spanishPatternData');
-    if (savedData) {
-      setGrammarSets(JSON.parse(savedData));
-    }
+    if (savedData) setGrammarSets(JSON.parse(savedData));
   }, []);
 
   const saveToLocalStorage = (data) => {
@@ -16,19 +22,20 @@ export default function App() {
     localStorage.setItem('spanishPatternData', JSON.stringify(data));
   };
 
+  // 標準のalert/confirmの代わりになる関数
+  const showAlert = (message) => setModal({ isOpen: true, message, isConfirm: false, onConfirm: null });
+  const showConfirm = (message, onConfirm) => setModal({ isOpen: true, message, isConfirm: true, onConfirm });
+
   const deleteSet = (id) => {
-    if (window.confirm('このセットを削除しますか？')) {
+    showConfirm('この教材セットを削除してもよろしいですか？', () => {
       const newData = grammarSets.filter(set => set.id !== id);
       saveToLocalStorage(newData);
-    }
+    });
   };
 
-  // 練習完了時にカウントを増やす関数
   const incrementPracticeCount = (ids) => {
     const newData = grammarSets.map(set => {
-      if (ids.includes(set.id)) {
-        return { ...set, practiceCount: (set.practiceCount || 0) + 1 };
-      }
+      if (ids.includes(set.id)) return { ...set, practiceCount: (set.practiceCount || 0) + 1 };
       return set;
     });
     saveToLocalStorage(newData);
@@ -45,35 +52,18 @@ export default function App() {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
-      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-      backgroundColor: colors.bg, color: colors.text, overflow: 'hidden'
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', backgroundColor: colors.bg, color: colors.text, overflow: 'hidden' }}>
       
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', width: '100%', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
         {activeTab === 'practice' ? (
-          <PracticeMode 
-            grammarSets={grammarSets} 
-            deleteSet={deleteSet} 
-            incrementPracticeCount={incrementPracticeCount} 
-            colors={colors} 
-          />
+          <PracticeMode grammarSets={grammarSets} deleteSet={deleteSet} incrementPracticeCount={incrementPracticeCount} showAlert={showAlert} colors={colors} />
         ) : (
-          <RegisterMode 
-            grammarSets={grammarSets} 
-            saveToLocalStorage={saveToLocalStorage} 
-            colors={colors} 
-          />
+          <RegisterMode grammarSets={grammarSets} saveToLocalStorage={saveToLocalStorage} showAlert={showAlert} colors={colors} />
         )}
       </div>
 
-      <div style={{
-        display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
-        borderTop: `1px solid ${colors.border}`, height: '84px',
-        paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box'
-      }}>
+      {/* タブバー */}
+      <div style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, height: '84px', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box' }}>
         <button onClick={() => setActiveTab('practice')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'practice' ? colors.primary : '#999', fontWeight: activeTab === 'practice' ? 'bold' : 'normal' }}>
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>Practice</div>練習
         </button>
@@ -81,11 +71,31 @@ export default function App() {
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>Register</div>登録
         </button>
       </div>
+
+      {/* カスタムモーダル */}
+      {modal.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
+          <div style={{ backgroundColor: colors.bg, borderRadius: '24px', padding: '30px', width: '100%', maxWidth: '320px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: `1px solid ${colors.border}` }}>
+            <p style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '24px', lineHeight: '1.5' }}>{modal.message}</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {modal.isConfirm && (
+                <button onClick={() => setModal({ ...modal, isOpen: false })} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}`, backgroundColor: '#fff', color: '#999', fontWeight: 'bold' }}>キャンセル</button>
+              )}
+              <button onClick={() => {
+                if (modal.onConfirm) modal.onConfirm();
+                setModal({ ...modal, isOpen: false });
+              }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: colors.primary, color: '#fff', fontWeight: 'bold' }}>
+                {modal.isConfirm ? '削除する' : 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, colors }) {
+function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
@@ -102,18 +112,12 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, colors }
         });
       }
     });
-    if (queue.length === 0) return alert('教材を選択してください');
+    if (queue.length === 0) return showAlert('教材を選択してください');
     if (isRandom) queue.sort(() => Math.random() - 0.5);
     setPracticeQueue(queue);
     setCurrentIndex(0);
     setShowAnswer(false);
     setIsPracticing(true);
-  };
-
-  const finishPractice = () => {
-    incrementPracticeCount(selectedIds);
-    alert('¡Excelente! 練習完了です。回数がカウントされました！');
-    setIsPracticing(false);
   };
 
   if (isPracticing) {
@@ -133,7 +137,9 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, colors }
               setCurrentIndex(currentIndex + 1);
               setShowAnswer(false);
             } else {
-              finishPractice();
+              incrementPracticeCount(selectedIds);
+              showAlert('¡Excelente! 練習完了です！');
+              setIsPracticing(false);
             }
           }} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>次へ進む</button>
         )}
@@ -147,18 +153,13 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, colors }
       <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>Library</h2>
       <div style={{ paddingBottom: '220px', width: '100%' }}>
         {grammarSets.map(set => (
-          <div key={set.id} style={{ 
-            display: 'flex', width: '100%', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
-            borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.white,
-            border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`, boxSizing: 'border-box'
-          }}>
-            <div onClick={() => setSelectedIds(prev => prev.includes(set.id) ? prev.filter(i => i !== set.id) : [...prev, set.id])}
-                 style={{ flex: 1, padding: '16px 20px', backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, cursor: 'pointer' }}>
+          <div key={set.id} style={{ display: 'flex', width: '100%', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.white, border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`, boxSizing: 'border-box' }}>
+            <div onClick={() => setSelectedIds(prev => prev.includes(set.id) ? prev.filter(i => i !== set.id) : [...prev, set.id])} style={{ flex: 1, padding: '16px 20px', backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
                 <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
               </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
+              <div style={{ fontSize: '13px', color: colors.secondary }}>🔥 練習回数: {set.practiceCount || 0}回</div>
             </div>
             <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
           </div>
@@ -179,7 +180,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, colors }
   );
 }
 
-function RegisterMode({ grammarSets, saveToLocalStorage, colors }) {
+function RegisterMode({ grammarSets, saveToLocalStorage, showAlert, colors }) {
   const [grammarName, setGrammarName] = useState('');
   const [cefrLevel, setCefrLevel] = useState('A1');
   const [bulkInput, setBulkInput] = useState('');
@@ -197,14 +198,14 @@ function RegisterMode({ grammarSets, saveToLocalStorage, colors }) {
   };
 
   const handleSave = () => {
-    if (!grammarName) return alert('文法名を入力してください');
+    if (!grammarName) return showAlert('文法名を入力してください');
     const validSentences = sentences.filter(s => s.ja && s.es);
-    if (validSentences.length === 0) return alert('例文を入力してください');
+    if (validSentences.length === 0) return showAlert('例文を入力してください');
     const newSet = { id: Date.now().toString(), grammarName, cefrLevel, sentences: validSentences, practiceCount: 0 };
     saveToLocalStorage([...grammarSets, newSet]);
     setGrammarName('');
     setSentences(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
-    alert('保存しました！');
+    showAlert('セットを保存しました！');
   };
 
   const inputBaseStyle = { width: '100%', padding: '12px', fontSize: '16px', boxSizing: 'border-box', border: `1px solid ${colors.border}`, borderRadius: '12px', backgroundColor: '#fff' };
@@ -212,24 +213,17 @@ function RegisterMode({ grammarSets, saveToLocalStorage, colors }) {
   return (
     <div style={{ width: '100%', paddingBottom: '60px' }}>
       <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>New Set</h2>
-      <input type="text" placeholder="文法項目（例: 点過去）" value={grammarName} onChange={e => setGrammarName(e.target.value)} style={{ ...inputBaseStyle, marginBottom: '20px' }} />
-      
-      <p style={{ fontSize: '14px', marginBottom: '10px', fontWeight: 'bold' }}>CEFR Level</p>
+      <input type="text" placeholder="文法項目" value={grammarName} onChange={e => setGrammarName(e.target.value)} style={{ ...inputBaseStyle, marginBottom: '20px' }} />
       <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
         {['A1', 'A2', 'B1', 'B2'].map(lv => (
-          <button key={lv} onClick={() => setCefrLevel(lv)} style={{
-            flex: 1, padding: '12px 0', borderRadius: '12px', border: `2px solid ${cefrLevel === lv ? colors.primary : colors.border}`,
-            backgroundColor: cefrLevel === lv ? colors.accent : '#fff', color: cefrLevel === lv ? colors.primary : '#999', fontWeight: 'bold'
-          }}>{lv}</button>
+          <button key={lv} onClick={() => setCefrLevel(lv)} style={{ flex: 1, padding: '12px 0', borderRadius: '12px', border: `2px solid ${cefrLevel === lv ? colors.primary : colors.border}`, backgroundColor: cefrLevel === lv ? colors.accent : '#fff', color: cefrLevel === lv ? colors.primary : '#999', fontWeight: 'bold' }}>{lv}</button>
         ))}
       </div>
-
       <div style={{ backgroundColor: colors.accent, padding: '20px', borderRadius: '20px', marginBottom: '32px' }}>
         <h3 style={{ fontSize: '15px', marginTop: 0, marginBottom: '12px' }}>Bulk Import</h3>
         <textarea placeholder="Geminiの結果を貼り付け" value={bulkInput} onChange={e => setBulkInput(e.target.value)} style={{ ...inputBaseStyle, height: '120px', marginBottom: '12px', border: 'none' }} />
         <button onClick={handleApplyBulk} style={{ width: '100%', padding: '12px', backgroundColor: colors.white, color: colors.primary, border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>反映</button>
       </div>
-
       {sentences.map((s, i) => (
         <div key={i} style={{ marginBottom: '16px', padding: '16px', backgroundColor: colors.white, borderRadius: '16px' }}>
           <input type="text" placeholder="日本語" value={s.ja} onChange={e => { const n = [...sentences]; n[i].ja = e.target.value; setSentences(n); }} style={{ ...inputBaseStyle, marginBottom: '8px', border: 'none', backgroundColor: '#F9F9F9' }} />
