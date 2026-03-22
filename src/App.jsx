@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 export default function App() {
   const [activeTab, setActiveTab] = useState('practice');
   const [grammarSets, setGrammarSets] = useState([]);
-  // 練習中かどうかをApp全体で管理（タブバーの表示・非表示を切り替えるため）
   const [isPracticing, setIsPracticing] = useState(false);
   
   const [modal, setModal] = useState({
@@ -50,7 +49,6 @@ export default function App() {
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
       `}</style>
 
-      {/* メインコンテンツエリア */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', width: '100%', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
         {activeTab === 'practice' ? (
           <PracticeMode 
@@ -67,7 +65,6 @@ export default function App() {
         )}
       </div>
 
-      {/* 練習中でない時だけタブバーを表示 */}
       {!isPracticing && (
         <div style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, height: '84px', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box' }}>
           <button onClick={() => setActiveTab('practice')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'practice' ? colors.primary : '#999', fontWeight: activeTab === 'practice' ? 'bold' : 'normal' }}>
@@ -79,7 +76,6 @@ export default function App() {
         </div>
       )}
 
-      {/* カスタムモーダル */}
       {modal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
           <div style={{ backgroundColor: colors.bg, borderRadius: '24px', padding: '30px', width: '100%', maxWidth: '320px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: `1px solid ${colors.border}` }}>
@@ -103,7 +99,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
-  const [questionLimit, setQuestionLimit] = useState(10);
+  const [questionLimit, setQuestionLimit] = useState(10); // 初期値は10
 
   const THINKING_TIME = 8000;
 
@@ -131,11 +127,13 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     let queue = [...allSentences];
     const isMultiple = selectedIds.length > 1;
 
+    // 複数選択時は強制シャッフル
     if (isMultiple || isRandom) {
       queue.sort(() => Math.random() - 0.5);
     }
 
-    if (isMultiple && questionLimit > 0) {
+    // 複数選択時は必ず選択した数(10 or 20)でカット。単体時は全問。
+    if (isMultiple) {
       queue = queue.slice(0, questionLimit);
     }
 
@@ -149,20 +147,43 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
 
   if (isPracticing) {
     const current = practiceQueue[currentIndex];
+    const displayTitle = isMultipleSelected ? "実力試しテスト" : current.grammarName;
+
     return (
-      <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+      <div style={{ textAlign: 'center', paddingTop: '20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px', marginBottom: '24px' }}>
+          {practiceQueue.map((_, idx) => (
+            <div key={idx} style={{
+              width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '6px', fontSize: '12px', fontWeight: 'bold',
+              backgroundColor: idx <= currentIndex ? colors.primary : 'transparent',
+              color: idx <= currentIndex ? '#fff' : colors.border,
+              border: `2px solid ${idx <= currentIndex ? colors.primary : colors.border}`,
+              transition: 'all 0.3s ease'
+            }}>
+              {idx + 1}
+            </div>
+          ))}
+        </div>
+
         {isAutoMode && !showAnswer && (
           <div style={{ width: '100%', height: '6px', backgroundColor: colors.border, borderRadius: '3px', overflow: 'hidden', marginBottom: '16px' }}>
             <div key={timerKey} style={{ width: '100%', height: '100%', backgroundColor: colors.primary, animation: `shrink ${THINKING_TIME/1000}s linear forwards` }} />
           </div>
         )}
-        <p style={{ color: colors.secondary, fontSize: '14px' }}>
-          {current.grammarName} ({currentIndex + 1}/{practiceQueue.length})
-        </p>
-        <div style={{ margin: '40px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4' }}>{current.ja}</div>
-        <div style={{ minHeight: '100px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+        <h3 style={{ color: colors.secondary, fontSize: '20px', fontWeight: '800', margin: '10px 0 30px' }}>
+          {displayTitle}
+        </h3>
+
+        <div style={{ margin: '30px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4', padding: '0 10px' }}>
+          {current.ja}
+        </div>
+        
+        <div style={{ minHeight: '120px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}>
           {showAnswer && <div style={{ fontSize: '24px', color: colors.primary, fontWeight: 'bold' }}>{current.es}</div>}
         </div>
+
         {!showAnswer ? (
           <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>解答を表示</button>
         ) : (
@@ -193,7 +214,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
                 <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
                 <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
               </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
+              <div style={{ fontSize: '13px', color: colors.secondary }}>🔥 練習回数: {set.practiceCount || 0}回</div>
             </div>
             <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
           </div>
@@ -207,7 +228,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
               <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />シャッフル
             </label>
           ) : (
-            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>複数選択: シャッフルON</div>
+            <div style={{ fontSize: '14px', color: colors.primary, fontWeight: 'bold' }}>✨ 複数選択: シャッフルON</div>
           )}
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: colors.secondary }}>
             <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '20px', height: '20px', marginRight: '8px' }} />オート解答
@@ -217,19 +238,19 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
         {isMultipleSelected && (
           <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: colors.secondary }}>出題数:</span>
-            {[10, 20, 0].map(num => (
+            {[10, 20].map(num => (
               <button key={num} onClick={() => setQuestionLimit(num)} style={{ 
                 flex: 1, padding: '8px 0', fontSize: '12px', borderRadius: '8px', border: `1px solid ${questionLimit === num ? colors.primary : colors.border}`,
                 backgroundColor: questionLimit === num ? colors.primary : '#fff', color: questionLimit === num ? '#fff' : colors.text
               }}>
-                {num === 0 ? '全て' : `${num}問`}
+                {num}問
               </button>
             ))}
           </div>
         )}
 
         <button onClick={startPractice} style={{ width: '100%', padding: '16px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(230, 126, 34, 0.2)' }}>
-          {isMultipleSelected ? `${questionLimit === 0 ? '全問' : questionLimit + '問'}で練習開始` : '練習を開始'}
+          {isMultipleSelected ? `${questionLimit}問で練習開始` : '練習を開始'}
         </button>
       </div>
     </div>
