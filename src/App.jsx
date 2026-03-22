@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 export default function App() {
   const [activeTab, setActiveTab] = useState('practice');
   const [grammarSets, setGrammarSets] = useState([]);
+  // 練習中かどうかをApp全体で管理（タブバーの表示・非表示を切り替えるため）
+  const [isPracticing, setIsPracticing] = useState(false);
   
   const [modal, setModal] = useState({
     isOpen: false, message: '', onConfirm: null, isConfirm: false
@@ -48,23 +50,36 @@ export default function App() {
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
       `}</style>
 
+      {/* メインコンテンツエリア */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', width: '100%', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
         {activeTab === 'practice' ? (
-          <PracticeMode grammarSets={grammarSets} deleteSet={deleteSet} incrementPracticeCount={incrementPracticeCount} showAlert={showAlert} colors={colors} />
+          <PracticeMode 
+            grammarSets={grammarSets} 
+            deleteSet={deleteSet} 
+            incrementPracticeCount={incrementPracticeCount} 
+            showAlert={showAlert} 
+            colors={colors}
+            isPracticing={isPracticing}
+            setIsPracticing={setIsPracticing}
+          />
         ) : (
           <RegisterMode grammarSets={grammarSets} saveToLocalStorage={saveToLocalStorage} showAlert={showAlert} colors={colors} />
         )}
       </div>
 
-      <div style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, height: '84px', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box' }}>
-        <button onClick={() => setActiveTab('practice')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'practice' ? colors.primary : '#999', fontWeight: activeTab === 'practice' ? 'bold' : 'normal' }}>
-          <div style={{ fontSize: '18px', marginBottom: '4px' }}>Practice</div>練習
-        </button>
-        <button onClick={() => setActiveTab('register')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'register' ? colors.primary : '#999', fontWeight: activeTab === 'register' ? 'bold' : 'normal', borderLeft: `1px solid ${colors.border}` }}>
-          <div style={{ fontSize: '18px', marginBottom: '4px' }}>Register</div>登録
-        </button>
-      </div>
+      {/* 練習中でない時だけタブバーを表示 */}
+      {!isPracticing && (
+        <div style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, height: '84px', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box' }}>
+          <button onClick={() => setActiveTab('practice')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'practice' ? colors.primary : '#999', fontWeight: activeTab === 'practice' ? 'bold' : 'normal' }}>
+            <div style={{ fontSize: '18px', marginBottom: '4px' }}>Practice</div>練習
+          </button>
+          <button onClick={() => setActiveTab('register')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'register' ? colors.primary : '#999', fontWeight: activeTab === 'register' ? 'bold' : 'normal', borderLeft: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: '18px', marginBottom: '4px' }}>Register</div>登録
+          </button>
+        </div>
+      )}
 
+      {/* カスタムモーダル */}
       {modal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
           <div style={{ backgroundColor: colors.bg, borderRadius: '24px', padding: '30px', width: '100%', maxWidth: '320px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: `1px solid ${colors.border}` }}>
@@ -80,11 +95,10 @@ export default function App() {
   );
 }
 
-function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors }) {
+function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors, isPracticing, setIsPracticing }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
   const [isAutoMode, setIsAutoMode] = useState(false);
-  const [isPracticing, setIsPracticing] = useState(false);
   const [practiceQueue, setPracticeQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -179,7 +193,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
                 <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
                 <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
               </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
+              <div style={{ fontSize: '13px', color: colors.secondary }}>🔥 練習回数: {set.practiceCount || 0}回</div>
             </div>
             <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
           </div>
