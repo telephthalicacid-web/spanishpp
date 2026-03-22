@@ -4,12 +4,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('practice');
   const [grammarSets, setGrammarSets] = useState([]);
   
-  // モーダル管理用のステート
   const [modal, setModal] = useState({
-    isOpen: false,
-    message: '',
-    onConfirm: null, // Confirm用：OKを押した時の処理
-    isConfirm: false // trueなら「キャンセル」ボタンを表示
+    isOpen: false, message: '', onConfirm: null, isConfirm: false
   });
 
   useEffect(() => {
@@ -22,7 +18,6 @@ export default function App() {
     localStorage.setItem('spanishPatternData', JSON.stringify(data));
   };
 
-  // 標準のalert/confirmの代わりになる関数
   const showAlert = (message) => setModal({ isOpen: true, message, isConfirm: false, onConfirm: null });
   const showConfirm = (message, onConfirm) => setModal({ isOpen: true, message, isConfirm: true, onConfirm });
 
@@ -42,18 +37,21 @@ export default function App() {
   };
 
   const colors = {
-    bg: '#FFFBF5',
-    primary: '#E67E22',
-    secondary: '#A04000',
-    text: '#4A2711',
-    accent: '#FDEBD0',
-    white: '#FFFFFF',
-    border: '#E5D3B3'
+    bg: '#FFFBF5', primary: '#E67E22', secondary: '#A04000',
+    text: '#4A2711', accent: '#FDEBD0', white: '#FFFFFF', border: '#E5D3B3'
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', backgroundColor: colors.bg, color: colors.text, overflow: 'hidden' }}>
       
+      {/* ゲージ用のアニメーション定義 */}
+      <style>{`
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', width: '100%', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
         {activeTab === 'practice' ? (
           <PracticeMode grammarSets={grammarSets} deleteSet={deleteSet} incrementPracticeCount={incrementPracticeCount} showAlert={showAlert} colors={colors} />
@@ -62,7 +60,6 @@ export default function App() {
         )}
       </div>
 
-      {/* タブバー */}
       <div style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${colors.border}`, height: '84px', paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 1000, boxSizing: 'border-box' }}>
         <button onClick={() => setActiveTab('practice')} style={{ flex: 1, border: 'none', backgroundColor: 'transparent', fontSize: '11px', color: activeTab === 'practice' ? colors.primary : '#999', fontWeight: activeTab === 'practice' ? 'bold' : 'normal' }}>
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>Practice</div>練習
@@ -72,21 +69,13 @@ export default function App() {
         </button>
       </div>
 
-      {/* カスタムモーダル */}
       {modal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
           <div style={{ backgroundColor: colors.bg, borderRadius: '24px', padding: '30px', width: '100%', maxWidth: '320px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: `1px solid ${colors.border}` }}>
             <p style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '24px', lineHeight: '1.5' }}>{modal.message}</p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              {modal.isConfirm && (
-                <button onClick={() => setModal({ ...modal, isOpen: false })} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}`, backgroundColor: '#fff', color: '#999', fontWeight: 'bold' }}>キャンセル</button>
-              )}
-              <button onClick={() => {
-                if (modal.onConfirm) modal.onConfirm();
-                setModal({ ...modal, isOpen: false });
-              }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: colors.primary, color: '#fff', fontWeight: 'bold' }}>
-                {modal.isConfirm ? '削除する' : 'OK'}
-              </button>
+              {modal.isConfirm && <button onClick={() => setModal({ ...modal, isOpen: false })} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}`, backgroundColor: '#fff', color: '#999', fontWeight: 'bold' }}>キャンセル</button>}
+              <button onClick={() => { if (modal.onConfirm) modal.onConfirm(); setModal({ ...modal, isOpen: false }); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: colors.primary, color: '#fff', fontWeight: 'bold' }}>{modal.isConfirm ? '削除する' : 'OK'}</button>
             </div>
           </div>
         </div>
@@ -98,10 +87,43 @@ export default function App() {
 function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
+  const [isAutoMode, setIsAutoMode] = useState(false); // 新規：オートモードの状態
   const [isPracticing, setIsPracticing] = useState(false);
   const [practiceQueue, setPracticeQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [timerKey, setTimerKey] = useState(0); // ゲージアニメーションリセット用
+
+  // 新規：オートモードのタイマー処理
+  useEffect(() => {
+    let timer;
+    if (isPracticing && isAutoMode) {
+      // 画面（状態）が切り替わるたびにアニメーションをリセット
+      setTimerKey(prev => prev + 1);
+      
+      if (!showAnswer) {
+        // 問題表示中：5秒後に解答を表示
+        timer = setTimeout(() => {
+          setShowAnswer(true);
+        }, 5000);
+      } else {
+        // 解答表示中：5秒後に次の問題へ
+        timer = setTimeout(() => {
+          if (currentIndex < practiceQueue.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setShowAnswer(false);
+          } else {
+            incrementPracticeCount(selectedIds);
+            showAlert('¡Excelente! オート練習完了です！');
+            setIsPracticing(false);
+          }
+        }, 5000);
+      }
+    }
+    // コンポーネントが切り替わったり、手動でボタンを押した時はタイマーを解除
+    return () => clearTimeout(timer);
+  }, [isPracticing, isAutoMode, showAnswer, currentIndex, practiceQueue.length]);
+
 
   const startPractice = () => {
     let queue = [];
@@ -124,13 +146,28 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     const current = practiceQueue[currentIndex];
     return (
       <div style={{ textAlign: 'center', paddingTop: '40px' }}>
-        <p style={{ color: colors.secondary, fontSize: '14px' }}>{current.grammarName} ({currentIndex + 1}/{practiceQueue.length})</p>
+        
+        {/* オートモード時のタイムゲージ */}
+        {isAutoMode && (
+          <div style={{ width: '100%', height: '6px', backgroundColor: colors.border, borderRadius: '3px', overflow: 'hidden', marginBottom: '16px' }}>
+            <div key={timerKey} style={{ width: '100%', height: '100%', backgroundColor: colors.primary, animation: 'shrink 5s linear forwards' }} />
+          </div>
+        )}
+
+        <p style={{ color: colors.secondary, fontSize: '14px' }}>
+          {current.grammarName} ({currentIndex + 1}/{practiceQueue.length})
+          {isAutoMode && <span style={{ marginLeft: '8px', color: colors.primary, fontWeight: 'bold' }}>[Auto]</span>}
+        </p>
+
         <div style={{ margin: '40px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4' }}>{current.ja}</div>
         <div style={{ minHeight: '100px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {showAnswer && <div style={{ fontSize: '24px', color: colors.primary, fontWeight: 'bold' }}>{current.es}</div>}
         </div>
+        
         {!showAnswer ? (
-          <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>解答を表示</button>
+          <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>
+            {isAutoMode ? '手動で解答を表示' : '解答を表示'}
+          </button>
         ) : (
           <button onClick={() => {
             if (currentIndex < practiceQueue.length - 1) {
@@ -141,7 +178,9 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
               showAlert('¡Excelente! 練習完了です！');
               setIsPracticing(false);
             }
-          }} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>次へ進む</button>
+          }} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>
+            {isAutoMode ? '手動で次へ進む' : '次へ進む'}
+          </button>
         )}
         <button onClick={() => setIsPracticing(false)} style={{ marginTop: '40px', background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: '15px' }}>中断して戻る</button>
       </div>
@@ -167,11 +206,17 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
       </div>
 
       <div style={{ position: 'fixed', bottom: '84px', left: 0, right: 0, backgroundColor: colors.bg, padding: '20px', borderTop: `1px solid ${colors.border}`, zIndex: 500, boxSizing: 'border-box' }}>
-        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+        
+        {/* モード選択のチェックボックスエリア */}
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary }}>
-            <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '10px' }} />シャッフル再生
+            <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '8px' }} />シャッフル
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary }}>
+            <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '8px' }} />オート (5秒)
           </label>
         </div>
+
         <button onClick={startPractice} style={{ width: '100%', padding: '18px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(230, 126, 34, 0.3)' }}>
           練習を開始 ({selectedIds.length})
         </button>
