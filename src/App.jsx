@@ -44,7 +44,6 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', backgroundColor: colors.bg, color: colors.text, overflow: 'hidden' }}>
       
-      {/* ゲージ用のアニメーション定義 */}
       <style>{`
         @keyframes shrink {
           from { width: 100%; }
@@ -87,43 +86,26 @@ export default function App() {
 function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
-  const [isAutoMode, setIsAutoMode] = useState(false); // 新規：オートモードの状態
+  const [isAutoMode, setIsAutoMode] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
   const [practiceQueue, setPracticeQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [timerKey, setTimerKey] = useState(0); // ゲージアニメーションリセット用
+  const [timerKey, setTimerKey] = useState(0);
 
-  // 新規：オートモードのタイマー処理
+  const THINKING_TIME = 8000; // ここで秒数を調整できます（8秒）
+
   useEffect(() => {
     let timer;
-    if (isPracticing && isAutoMode) {
-      // 画面（状態）が切り替わるたびにアニメーションをリセット
+    // 「練習中」かつ「オートモード」かつ「まだ答えが出ていない」時だけタイマーを作動
+    if (isPracticing && isAutoMode && !showAnswer) {
       setTimerKey(prev => prev + 1);
-      
-      if (!showAnswer) {
-        // 問題表示中：5秒後に解答を表示
-        timer = setTimeout(() => {
-          setShowAnswer(true);
-        }, 5000);
-      } else {
-        // 解答表示中：5秒後に次の問題へ
-        timer = setTimeout(() => {
-          if (currentIndex < practiceQueue.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-            setShowAnswer(false);
-          } else {
-            incrementPracticeCount(selectedIds);
-            showAlert('¡Excelente! オート練習完了です！');
-            setIsPracticing(false);
-          }
-        }, 5000);
-      }
+      timer = setTimeout(() => {
+        setShowAnswer(true);
+      }, THINKING_TIME);
     }
-    // コンポーネントが切り替わったり、手動でボタンを押した時はタイマーを解除
     return () => clearTimeout(timer);
-  }, [isPracticing, isAutoMode, showAnswer, currentIndex, practiceQueue.length]);
-
+  }, [isPracticing, isAutoMode, showAnswer, currentIndex]);
 
   const startPractice = () => {
     let queue = [];
@@ -147,16 +129,19 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     return (
       <div style={{ textAlign: 'center', paddingTop: '40px' }}>
         
-        {/* オートモード時のタイムゲージ */}
-        {isAutoMode && (
+        {/* オートモードかつ、回答待ちの時だけゲージを表示 */}
+        {isAutoMode && !showAnswer && (
           <div style={{ width: '100%', height: '6px', backgroundColor: colors.border, borderRadius: '3px', overflow: 'hidden', marginBottom: '16px' }}>
-            <div key={timerKey} style={{ width: '100%', height: '100%', backgroundColor: colors.primary, animation: 'shrink 5s linear forwards' }} />
+            <div key={timerKey} style={{ 
+              width: '100%', height: '100%', backgroundColor: colors.primary, 
+              animation: `shrink ${THINKING_TIME/1000}s linear forwards` 
+            }} />
           </div>
         )}
 
         <p style={{ color: colors.secondary, fontSize: '14px' }}>
           {current.grammarName} ({currentIndex + 1}/{practiceQueue.length})
-          {isAutoMode && <span style={{ marginLeft: '8px', color: colors.primary, fontWeight: 'bold' }}>[Auto]</span>}
+          {isAutoMode && <span style={{ marginLeft: '8px', color: colors.primary, fontWeight: 'bold' }}>[半自動]</span>}
         </p>
 
         <div style={{ margin: '40px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4' }}>{current.ja}</div>
@@ -166,7 +151,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
         
         {!showAnswer ? (
           <button onClick={() => setShowAnswer(true)} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>
-            {isAutoMode ? '手動で解答を表示' : '解答を表示'}
+            解答を表示
           </button>
         ) : (
           <button onClick={() => {
@@ -179,7 +164,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
               setIsPracticing(false);
             }
           }} style={{ width: '100%', padding: '20px', fontSize: '18px', backgroundColor: colors.text, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>
-            {isAutoMode ? '手動で次へ進む' : '次へ進む'}
+            次へ進む
           </button>
         )}
         <button onClick={() => setIsPracticing(false)} style={{ marginTop: '40px', background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: '15px' }}>中断して戻る</button>
@@ -206,17 +191,14 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
       </div>
 
       <div style={{ position: 'fixed', bottom: '84px', left: 0, right: 0, backgroundColor: colors.bg, padding: '20px', borderTop: `1px solid ${colors.border}`, zIndex: 500, boxSizing: 'border-box' }}>
-        
-        {/* モード選択のチェックボックスエリア */}
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary }}>
             <input type="checkbox" checked={isRandom} onChange={e => setIsRandom(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '8px' }} />シャッフル
           </label>
           <label style={{ display: 'flex', alignItems: 'center', fontSize: '15px', color: colors.secondary }}>
-            <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '8px' }} />オート (5秒)
+            <input type="checkbox" checked={isAutoMode} onChange={e => setIsAutoMode(e.target.checked)} style={{ width: '22px', height: '22px', marginRight: '8px' }} />オート解答
           </label>
         </div>
-
         <button onClick={startPractice} style={{ width: '100%', padding: '18px', fontSize: '18px', backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(230, 126, 34, 0.3)' }}>
           練習を開始 ({selectedIds.length})
         </button>
