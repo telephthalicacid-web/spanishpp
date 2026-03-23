@@ -100,7 +100,36 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   const [showAnswer, setShowAnswer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
   const [questionLimit, setQuestionLimit] = useState(10);
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
+  const levelOrder = { 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4 };
 
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const sortedSets = [...grammarSets].sort((a, b) => {
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+    if (sortConfig.key === 'cefrLevel') {
+      valA = levelOrder[a.cefrLevel] || 0;
+      valB = levelOrder[b.cefrLevel] || 0;
+    }
+    if (sortConfig.key === 'grammarName') {
+      valA = a.grammarName.toLowerCase();
+      valB = b.grammarName.toLowerCase();
+    }
+    if (sortConfig.key === 'practiceCount') {
+      valA = a.practiceCount || 0;
+      valB = b.practiceCount || 0;
+    }
+    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+  // --- ここまで ---
   const THINKING_TIME = 8000;
 
   useEffect(() => {
@@ -214,9 +243,26 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   // 以下、LibraryとRegisterModeは変更なしのため省略（前のコードと同じです）
   return (
     <div style={{ width: '100%' }}>
-      <h2 style={{ fontSize: '22px', marginBottom: '20px', fontWeight: '800' }}>Library</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h2 style={{ fontSize: '22px', margin: 0, fontWeight: '800' }}>Library</h2>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {[
+            { label: 'レベル', key: 'cefrLevel' },
+            { label: '題名', key: 'grammarName' },
+            { label: '回数', key: 'practiceCount' }
+          ].map(btn => (
+            <button key={btn.key} onClick={() => handleSort(btn.key)} style={{
+              fontSize: '11px', padding: '4px 8px', borderRadius: '8px', border: `1px solid ${sortConfig.key === btn.key ? colors.primary : colors.border}`,
+              backgroundColor: sortConfig.key === btn.key ? colors.primary : 'transparent',
+              color: sortConfig.key === btn.key ? '#fff' : '#999', fontWeight: 'bold'
+            }}>
+              {btn.label}{sortConfig.key === btn.key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+            </button>
+          ))}
+        </div>
+      </div>
       <div style={{ paddingBottom: '240px', width: '100%' }}>
-        {grammarSets.map(set => (
+        {sortedSets.map(set => (
           <div key={set.id} style={{ display: 'flex', width: '100%', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.white, border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`, boxSizing: 'border-box' }}>
             <div onClick={() => setSelectedIds(prev => prev.includes(set.id) ? prev.filter(i => i !== set.id) : [...prev, set.id])} style={{ flex: 1, padding: '16px 20px', backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
