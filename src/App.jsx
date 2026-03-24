@@ -29,6 +29,18 @@ export default function App() {
     });
   };
 
+  // --- 新規: ステータス（学習中 ⇔ 一旦OK）の切り替え ---
+  const toggleStatus = (id) => {
+    const newData = grammarSets.map(set => {
+      if (set.id === id) {
+        const currentStatus = set.status || 'learning';
+        return { ...set, status: currentStatus === 'learning' ? 'done' : 'learning' };
+      }
+      return set;
+    });
+    saveToLocalStorage(newData);
+  };
+
   const incrementPracticeCount = (ids) => {
     const newData = grammarSets.map(set => {
       if (ids.includes(set.id)) return { ...set, practiceCount: (set.practiceCount || 0) + 1 };
@@ -54,6 +66,7 @@ export default function App() {
           <PracticeMode 
             grammarSets={grammarSets} 
             deleteSet={deleteSet} 
+            toggleStatus={toggleStatus}
             incrementPracticeCount={incrementPracticeCount} 
             showAlert={showAlert} 
             colors={colors}
@@ -91,7 +104,7 @@ export default function App() {
   );
 }
 
-function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAlert, colors, isPracticing, setIsPracticing }) {
+function PracticeMode({ grammarSets, deleteSet, toggleStatus, incrementPracticeCount, showAlert, colors, isPracticing, setIsPracticing }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isRandom, setIsRandom] = useState(false);
   const [isAutoMode, setIsAutoMode] = useState(false);
@@ -100,6 +113,10 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
   const [showAnswer, setShowAnswer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
   const [questionLimit, setQuestionLimit] = useState(10);
+  
+  // --- 新規: 表示するタブの状態（learning = 学習中, done = 一旦OK） ---
+  const [viewStatus, setViewStatus] = useState('learning');
+  
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
   const levelOrder = { 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4 };
 
@@ -110,6 +127,7 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     }));
   };
 
+  // ソート処理
   const sortedSets = [...grammarSets].sort((a, b) => {
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
@@ -129,7 +147,13 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
-  // --- ここまで ---
+
+  // --- 新規: 表示しているタブ（学習中 / 一旦OK）に合わせてリストを絞り込む ---
+  const filteredSets = sortedSets.filter(set => {
+    const status = set.status || 'learning'; // データがないものは学習中とする
+    return status === viewStatus;
+  });
+
   const THINKING_TIME = 8000;
 
   useEffect(() => {
@@ -178,26 +202,9 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
 
     return (
       <div style={{ textAlign: 'center', paddingTop: '10px' }}>
-        {/* プログレス・インジケーター（10列固定のグリッド） */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(10, 1fr)', 
-          gap: '6px', 
-          marginBottom: '30px',
-          width: '100%',
-          maxWidth: '400px',
-          margin: '0 auto 30px'
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '6px', marginBottom: '30px', width: '100%', maxWidth: '400px', margin: '0 auto 30px' }}>
           {practiceQueue.map((_, idx) => (
-            <div key={idx} style={{
-              aspectRatio: '1 / 1',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: idx <= currentIndex ? colors.primary : 'transparent',
-              color: idx <= currentIndex ? '#fff' : colors.border,
-              border: `1.5px solid ${idx <= currentIndex ? colors.primary : colors.border}`,
-              transition: 'all 0.3s ease'
-            }}>
+            <div key={idx} style={{ aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', backgroundColor: idx <= currentIndex ? colors.primary : 'transparent', color: idx <= currentIndex ? '#fff' : colors.border, border: `1.5px solid ${idx <= currentIndex ? colors.primary : colors.border}`, transition: 'all 0.3s ease' }}>
               {idx + 1}
             </div>
           ))}
@@ -209,14 +216,8 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
           </div>
         )}
 
-        <h3 style={{ color: colors.secondary, fontSize: '24px', fontWeight: '800', margin: '10px 0 30px' }}>
-          {displayTitle}
-        </h3>
-
-        <div style={{ margin: '30px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4', padding: '0 10px' }}>
-          {current.ja}
-        </div>
-        
+        <h3 style={{ color: colors.secondary, fontSize: '24px', fontWeight: '800', margin: '10px 0 30px' }}>{displayTitle}</h3>
+        <div style={{ margin: '30px 0', fontSize: '24px', fontWeight: 'bold', minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1.4', padding: '0 10px' }}>{current.ja}</div>
         <div style={{ minHeight: '120px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}>
           {showAnswer && <div style={{ fontSize: '24px', color: colors.primary, fontWeight: 'bold' }}>{current.es}</div>}
         </div>
@@ -240,17 +241,23 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
     );
   }
 
-  // 以下、LibraryとRegisterModeは変更なしのため省略（前のコードと同じです）
   return (
     <div style={{ width: '100%' }}>
+      
+      {/* --- 新規: ステータス切り替えタブ --- */}
+      <div style={{ display: 'flex', marginBottom: '16px', backgroundColor: '#fff', borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+        <button onClick={() => { setViewStatus('learning'); setSelectedIds([]); }} style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 'bold', border: 'none', backgroundColor: viewStatus === 'learning' ? colors.primary : 'transparent', color: viewStatus === 'learning' ? '#fff' : colors.secondary }}>
+          学習中
+        </button>
+        <button onClick={() => { setViewStatus('done'); setSelectedIds([]); }} style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 'bold', border: 'none', backgroundColor: viewStatus === 'done' ? colors.primary : 'transparent', color: viewStatus === 'done' ? '#fff' : colors.secondary }}>
+          一旦OK
+        </button>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h2 style={{ fontSize: '22px', margin: 0, fontWeight: '800' }}>Library</h2>
         <div style={{ display: 'flex', gap: '4px' }}>
-          {[
-            { label: 'レベル', key: 'cefrLevel' },
-            { label: '題名', key: 'grammarName' },
-            { label: '回数', key: 'practiceCount' }
-          ].map(btn => (
+          {[ { label: 'レベル', key: 'cefrLevel' }, { label: '題名', key: 'grammarName' }, { label: '回数', key: 'practiceCount' } ].map(btn => (
             <button key={btn.key} onClick={() => handleSort(btn.key)} style={{
               fontSize: '11px', padding: '4px 8px', borderRadius: '8px', border: `1px solid ${sortConfig.key === btn.key ? colors.primary : colors.border}`,
               backgroundColor: sortConfig.key === btn.key ? colors.primary : 'transparent',
@@ -261,19 +268,33 @@ function PracticeMode({ grammarSets, deleteSet, incrementPracticeCount, showAler
           ))}
         </div>
       </div>
+
       <div style={{ paddingBottom: '240px', width: '100%' }}>
-        {sortedSets.map(set => (
-          <div key={set.id} style={{ display: 'flex', width: '100%', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.white, border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`, boxSizing: 'border-box' }}>
-            <div onClick={() => setSelectedIds(prev => prev.includes(set.id) ? prev.filter(i => i !== set.id) : [...prev, set.id])} style={{ flex: 1, padding: '16px 20px', backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
-                <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
-              </div>
-              <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
-            </div>
-            <button onClick={() => deleteSet(set.id)} style={{ width: '60px', color: '#E74C3C', border: 'none', backgroundColor: '#FFF1F0', fontSize: '12px', borderLeft: `1px solid ${colors.border}` }}>削除</button>
+        {filteredSets.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>
+            {viewStatus === 'learning' ? '学習中の教材はありません' : 'クリアした教材はまだありません'}
           </div>
-        ))}
+        ) : (
+          filteredSets.map(set => (
+            <div key={set.id} style={{ display: 'flex', width: '100%', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: '16px', overflow: 'hidden', backgroundColor: colors.white, border: `1px solid ${selectedIds.includes(set.id) ? colors.primary : 'transparent'}`, boxSizing: 'border-box' }}>
+              <div onClick={() => setSelectedIds(prev => prev.includes(set.id) ? prev.filter(i => i !== set.id) : [...prev, set.id])} style={{ flex: 1, padding: '16px 20px', backgroundColor: selectedIds.includes(set.id) ? colors.accent : colors.white, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{set.grammarName}</span>
+                  <span style={{ fontSize: '12px', backgroundColor: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>{set.cefrLevel}</span>
+                </div>
+                <div style={{ fontSize: '13px', color: colors.secondary }}>練習回数: {set.practiceCount || 0}回</div>
+              </div>
+              
+              {/* --- 新規: 右側アクションエリアの分割 --- */}
+              <div style={{ display: 'flex', flexDirection: 'column', width: '70px', borderLeft: `1px solid ${colors.border}` }}>
+                <button onClick={() => toggleStatus(set.id)} style={{ flex: 1, border: 'none', borderBottom: `1px solid ${colors.border}`, backgroundColor: viewStatus === 'learning' ? '#E8F6F3' : '#FFF3E0', color: viewStatus === 'learning' ? '#16A085' : '#D35400', fontSize: '11px', fontWeight: 'bold' }}>
+                  {viewStatus === 'learning' ? '一旦OK' : '戻す'}
+                </button>
+                <button onClick={() => deleteSet(set.id)} style={{ flex: 1, border: 'none', backgroundColor: '#FFF1F0', color: '#E74C3C', fontSize: '11px' }}>削除</button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div style={{ position: 'fixed', bottom: '84px', left: 0, right: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)', padding: '16px 20px', borderTop: `1px solid ${colors.border}`, zIndex: 500, boxSizing: 'border-box' }}>
@@ -333,7 +354,8 @@ function RegisterMode({ grammarSets, saveToLocalStorage, showAlert, colors }) {
     if (!grammarName) return showAlert('文法名を入力してください');
     const validSentences = sentences.filter(s => s.ja && s.es);
     if (validSentences.length === 0) return showAlert('例文を入力してください');
-    const newSet = { id: Date.now().toString(), grammarName, cefrLevel, sentences: validSentences, practiceCount: 0 };
+    // --- 新規: 登録時にステータスを付与 ---
+    const newSet = { id: Date.now().toString(), grammarName, cefrLevel, sentences: validSentences, practiceCount: 0, status: 'learning' };
     saveToLocalStorage([...grammarSets, newSet]);
     setGrammarName('');
     setSentences(Array.from({ length: 10 }, () => ({ ja: '', es: '' })));
